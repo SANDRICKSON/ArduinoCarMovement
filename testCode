@@ -1,0 +1,137 @@
+// Motor control pins
+int in1 = 2;
+int in2 = 3;
+int in3 = 4;
+int in4 = 5;
+
+// Ultrasonic sensor pins
+int trigPin = 8;
+int echoPin = 9;
+
+long duration;
+int dist;
+bool avoiding = false; // Flag so robot finishes the first avoidance before new detection
+
+void setup() {
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(in3, OUTPUT);
+  pinMode(in4, OUTPUT);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  Serial.begin(9600);
+}
+
+// -----------------
+// Movement functions
+// -----------------
+void forward() {
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+}
+
+void backward() {
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+}
+
+void right() {
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+}
+
+void left() {
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+}
+
+void stop() {
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+}
+
+// -----------------
+// Distance measurement
+// -----------------
+void distance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH, 25000); // Timeout 25ms
+  dist = duration * 0.034 / 2;
+
+  Serial.print("Distance: ");
+  Serial.println(dist);
+}
+
+// -----------------
+// Obstacle avoidance (four-sided route)
+// -----------------
+void obstacle() {
+  avoiding = true; // Prevent re-triggering
+
+  // Your rectangular movement pattern
+  forward();
+  delay(1000);
+
+  backward();
+  delay(300);  // უკან
+
+  right();
+  delay(700);  // მარჯვნივ
+
+  forward();
+  delay(500);  // წინ
+
+  left();
+  delay(550);  // მარცხნივ
+
+  forward();
+  delay(700);  // წინ
+
+  left();
+  delay(500);  // მარცხნივ
+
+  forward();
+  delay(1000); // წინ
+
+  right();
+  delay(700);  // მარჯვნივ
+
+  stop();
+  delay(1000); // სტოპ
+
+  avoiding = false; // Done, resume normal driving
+}
+
+// -----------------
+// Main loop
+// -----------------
+void loop() {
+  if (!avoiding) { // Only check for obstacles if not already avoiding
+    distance();
+
+    if (dist > 0 && dist < 15) { // Detect obstacle within 15 cm
+      obstacle();
+    } else {
+      forward(); // Continue forward normally
+    }
+  }
+
+  delay(100);
+}
